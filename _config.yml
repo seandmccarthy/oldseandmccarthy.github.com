@@ -3,10 +3,10 @@
 # ----------------------- #
 
 url: http://seandmccarthy.github.com
-title: My Octopress Blog
-subtitle: A blogging framework for hackers.
-author: Your Name
-simple_search: http://google.com/search
+title: Remember This
+subtitle: A backup for my brain
+author: Sean D McCarthy
+simple_search: https://duckduckgo.com/
 description:
 
 # Default date format is "ordinal" (resulting in "July 22nd 2007")

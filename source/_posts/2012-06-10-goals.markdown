@@ -1,0 +1,33 @@
+---
+layout: post
+title: "Goals"
+date: 2012-06-10 20:36
+comments: false
+categories: [Thoughts]
+---
+
+1. Make this about discovery
+2. Bookmark and describe other's insights
+3. Keep it positive
+
+## 1. Discovery ##
+
+In an [article](http://www-cs-faculty.stanford.edu/~knuth/email.html) Donald Knuth stated:
+
+> "Email is a wonderful thing for people whose role in life is to be on top of things. But not for me; my role is to be on the bottom of things."
+
+I love it when I have an opportunity to get the bottom of things. To learn how something works under the hood. To chase down a bug or unexpected behaviour and resolve it.
+
+What I've not done in the past is the document what I did. The process in and of itself was satisfying enough personally. I never thought it would either be interesting to others, or would serve me in the future. Maybe this will remain true, but I've resolved to start documenting the discovery process and resolution and see what comes of it.
+
+## 2. Bookmark and describe other's insights ##
+
+Thanks to various sources, I read a number of blog posts, watch conferences videos, and lurk around/post to discussions. I tend to bookmark a few, but I'm still hopeless at keeping the various bookmarks across 3 or more devices centralised/syncronised. Bookmarking also doesn't let me describe what I liked or gained from it. There's no TL;DR summary.
+
+So I'm going to use this blog to help me remember what I liked and why.
+
+## 3. Keep it positive ##
+
+No rants, naysaying, or picking on easy targets. If I disagree with something I'll present the (IMHO) better alternative.
+
+There's so much good stuff out there, so I want to highlight that.
