@@ -6,10 +6,11 @@ comments: false
 categories: [Thoughts]
 ---
 
-1. Make this about discovery
-2. Bookmark and describe other's insights
-3. Keep it positive
+1. [Make this about discovery](#discovery)
+2. [Bookmark and describe other's insights](#bookmark)
+3. [Keep it positive](#positive)
 
+<a id="discovery"></a>
 ## 1. Discovery ##
 
 In an [article](http://www-cs-faculty.stanford.edu/~knuth/email.html) Donald Knuth stated:
@@ -20,12 +21,14 @@ I love it when I have an opportunity to get the bottom of things. To learn how s
 
 What I've not done in the past is the document what I did. The process in and of itself was satisfying enough personally. I never thought it would either be interesting to others, or would serve me in the future. Maybe this will remain true, but I've resolved to start documenting the discovery process and resolution and see what comes of it.
 
+<a id="bookmark"></a>
 ## 2. Bookmark and describe other's insights ##
 
 Thanks to various sources, I read a number of blog posts, watch conferences videos, and lurk around/post to discussions. I tend to bookmark a few, but I'm still hopeless at keeping the various bookmarks across 3 or more devices centralised/syncronised. Bookmarking also doesn't let me describe what I liked or gained from it. There's no TL;DR summary.
 
 So I'm going to use this blog to help me remember what I liked and why.
 
+<a id="positive"></a>
 ## 3. Keep it positive ##
 
 No rants, naysaying, or picking on easy targets. If I disagree with something I'll present the (IMHO) better alternative.
