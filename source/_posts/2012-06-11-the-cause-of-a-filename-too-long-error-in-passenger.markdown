@@ -28,7 +28,7 @@ The upside was that the error message had a stack trace that pointed to a root c
      in 'Server::Server(Passenger::FileDescriptor, pid_t, const std::string&, bool, const std::string&, const std::string&, const std::string&, const std::string&, unsigned int, unsigned int, unsigned int, unsigned int, const Passenger::VariantMap&)' (HelperAgent.cpp:239)
      in 'int main(int, char**)' (HelperAgent.cpp:343)
 
-I downloaded the Passenger source and starting looking. Line 170 of SpawnManager.h was a trace breakpoint, but directly below it was:
+I downloaded the Phusion Passenger source and starting looking. Line 170 of SpawnManager.h was a trace breakpoint, but directly below it was:
 
     socketFilename = generation->getPath() + "/spawn-server/socket." +
         toString(getpid()) + "." +
