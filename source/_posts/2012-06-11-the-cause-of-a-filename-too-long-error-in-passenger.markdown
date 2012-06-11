@@ -16,7 +16,7 @@ I headed straight for the appropriate Apache error log to see if there was anyth
 
 What made no sense to me was that the quoted path could be too long for Linux.
 
-I tried my luck searching the web and the best I got was [an issue raised on 24th May 2011](http://code.google.com/p/phusion-passenger/issues/detail?id=674), which was unresolved.
+I tried my luck searching the web and the best I got was [an issue raised on 24th May 2011](http://code.google.com/p/phusion-passenger/issues/detail?id=674), which was unresolved<sup>[1](#footnote)</sup>.
 
 Guess I was going to have to do this the hard way.
 
@@ -59,3 +59,7 @@ This effectively means that, with the minimum auto-generated socket filename pat
 I adjusted my paths accordingly, and I could fire up the Rails app successfully.
 
 As to why the sockaddr_un struct has that limit? I haven't been able to find out yet.
+
+---
+<a id="footnote"></a>
+1. I've now added my findings as a comment.
