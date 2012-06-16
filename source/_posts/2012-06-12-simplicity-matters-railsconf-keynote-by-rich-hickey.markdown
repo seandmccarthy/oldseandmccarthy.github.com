@@ -3,7 +3,7 @@ layout: post
 title: "Simplicity Matters: Railsconf Keynote by Rich Hickey"
 date: 2012-06-12 20:03
 comments: true
-categories: [railsconf thoughtleader fp bookmarks]
+categories: [railsconf, thoughtleader, fp, bookmarks]
 ---
 
 Rich Hickey is the creator of [Clojure](http://clojure.org/).
