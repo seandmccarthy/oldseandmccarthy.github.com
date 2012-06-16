@@ -24,7 +24,7 @@ What I've not done in the past is the document what I did. The process in and of
 <a id="bookmark"></a>
 ## 2. Bookmark and describe other's insights ##
 
-Thanks to various sources, I read a number of blog posts, watch conferences videos, and lurk around/post to discussions. I tend to bookmark a few, but I'm still hopeless at keeping the various bookmarks across 3 or more devices centralised/syncronised. Bookmarking also doesn't let me describe what I liked or gained from it. There's no TL;DR summary.
+Thanks to various sources, I read a number of blog posts, watch conference videos, and lurk around/post to discussions. I tend to bookmark a few, but I'm still hopeless at keeping the various bookmarks across 3 or more devices centralised/syncronised. Bookmarking also doesn't let me describe what I liked or gained from it. There's no TL;DR summary.
 
 So I'm going to use this blog to help me remember what I liked and why.
 

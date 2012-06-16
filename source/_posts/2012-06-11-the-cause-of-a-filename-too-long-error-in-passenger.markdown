@@ -3,7 +3,7 @@ layout: post
 title: "The Cause of a Filename too long error in Passenger"
 date: 2012-06-11 21:16
 comments: false
-categories: rails passenger troubleshooting
+categories: [rails passenger troubleshooting]
 ---
 
 Due to a space issue on a server, I moved the location I had deployed a Rails app to another mount point. This is all easy, just move the files, check permissions, and make a few path changes in the Apache configuration file for that virtualhost.
