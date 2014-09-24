@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: xml | The Ten Thousand Dollar Screw]]></title>
+  <link href="http://seandmccarthy.github.com/blog/categories/xml/atom.xml" rel="self"/>
+  <link href="http://seandmccarthy.github.com/"/>
+  <updated>2014-09-24T21:46:07+10:00</updated>
+  <id>http://seandmccarthy.github.com/</id>
+  <author>
+    <name><![CDATA[Sean D McCarthy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Java and Ruby and XML]]></title>
+    <link href="http://seandmccarthy.github.com/blog/2012/09/27/java-and-ruby-and-xml/"/>
+    <updated>2012-09-27T08:07:00+10:00</updated>
+    <id>http://seandmccarthy.github.com/blog/2012/09/27/java-and-ruby-and-xml</id>
+    <content type="html"><![CDATA[<p>I've been working with a colleague on a project to create a set of command line applications to read and emit various genomics file formats. The clients asked that we write the applications in Java, since we'll be handing it over to them and it's the language they're most comfortable with.</p>
+
+<p>One of the file formats is <a href="http://www.psidev.info/mzidentml">mzidentML</a>, an XML format.</p>
+
+<p>It's been a while since I've used Java in anger, and using it to read XML probably longer, so it was virtually like learning it anew.</p>
+
+<p>Even with my more Java adept colleague, it took hours to work out how to use the Java XML API for this relatively simple task. So by noting the analogous operations using Ruby and <a href="http://nokogiri.org/">Nokogiri</a>, I'll save myself the grief in future.</p>
+
+<p>It's also interesting to note where I think things in the Java XML API are more verbose or complicated, but probably some of the myriad of external Java XML processing packages address these.</p>
+
+<h2>Namespaces</h2>
+
+<p>If your XML uses namespaces, like mzidentML does:</p>
+
+<pre><code>&lt;mzIdentML id="" version="1.0.0"
+     xsi:schemaLocation="http://psidev.info/psi/pi/mzIdentML/1.0 http://mascotx/mascot/xmlns/schema/mzIdentML/mzIdentML1.0.0.xsd"
+     xmlns="http://psidev.info/psi/pi/mzIdentML/1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     creationDate="2012-09-14T11:21:00"&gt;
+</code></pre>
+
+<p>then you need to specify the namespace in your XPath expressions.</p>
+
+<p>Here is the minimum required (as best as I could determine) to set an XML namespace:</p>
+
+<pre><code>xPath.setNamespaceContext(new NamespaceContext() {
+    public String getNamespaceURI(String prefix) {
+        if (prefix == null)
+            throw new NullPointerException("Null prefix");
+        else if ("mz".equals(prefix))
+            return "http://psidev.info/psi/pi/mzIdentML/1.0";
+        return XMLConstants.NULL_NS_URI;
+    }
+    public String getPrefix(String uri) {
+        throw new UnsupportedOperationException();
+    }
+    public Iterator getPrefixes(String uri) {
+        throw new UnsupportedOperationException();
+    }
+});
+</code></pre>
+
+<p>So that it can be used in an XPath expression as so:</p>
+
+<pre><code>NodeList peptideList = (NodeList)xPath.evaluate("//mz:Peptide", rootNode, XPathConstants.NODESET);
+</code></pre>
+
+<p>In Ruby, using Nokogiri, it can basically be:</p>
+
+<pre><code>MZIDENTML_NS = 'http://psidev.info/psi/pi/mzIdentML/1.0';
+# Look for &lt;Peptide&gt; elements in this namespace
+peptide_list = doc.xpath("//mz:Peptide", {'mz' =&gt;  MZIDENTML_NS})
+</code></pre>
+
+<p>Now I can appreciate somewhat that the Java NamespaceContext interface is trying to cover more than this simple use case. However I feel there should be, in the core Java API, a simple alternative specifically for this common use case.</p>
+
+<h2>XPath Expressions</h2>
+
+<p>There was a hint of these in the section above.</p>
+
+<p>To evaluate an XPath expression in Java:</p>
+
+<pre><code>NodeList peptideList = (NodeList)xPath.evaluate("//mz:Peptide", rootNode, XPathConstants.NODESET);
+</code></pre>
+
+<p>The casting and the constant are understandable in a statically typed language, although I did wonder if method overloading could be used to avoid the casting (obviously the last parameter could not be a String constant, perhaps NodeList.class for example).</p>
+
+<p>The Ruby/Nokogiri version of searching for elements with XPath:</p>
+
+<pre><code>peptide_list = doc.xpath("//mz:Peptide", {'mz' =&gt;  MZIDENTML_NS})
+</code></pre>
+
+<h2>Retrieving Attributes</h2>
+
+<p>Given the following XML:</p>
+
+<pre><code>&lt;PeptideEvidence id="PE_11_1_KPYK1_YEAST_0_469_474" start="469" end="474" pre="K" post="E" missedCleavages="0" isDecoy="false" DBSequence_Ref="DBSeq_1_KPYK1_YEAST" /&gt;
+</code></pre>
+
+<p>It took a while to work out a way to get an XML attribute value with the Java XML API. I was convinced this must not be right, but it seems that it is:</p>
+
+<pre><code>String id = node.getAttributes().getNamedItem("id").getNodeValue();
+</code></pre>
+
+<p>Contrast that with Ruby/Nokogiri:</p>
+
+<pre><code>id = node['id']
+</code></pre>
+
+<p>Completely straightforward and intuitive.</p>
+
+<h2>Conclusion</h2>
+
+<p>I'm sure we could have cast around and evaluated the available XML parsing/handling libraries for Java. Many probably make life a lot simpler.</p>
+
+<p>Ultimately we didn't because we thought the task was simple and straightforward, and hence didn't need another potentially large library. We thought the provided Java XML API should be sufficient. It was, but it wasn't straightforward.</p>
+]]></content>
+  </entry>
+  
+</feed>

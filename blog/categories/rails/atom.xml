@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: rails | The Ten Thousand Dollar Screw]]></title>
+  <link href="http://seandmccarthy.github.com/blog/categories/rails/atom.xml" rel="self"/>
+  <link href="http://seandmccarthy.github.com/"/>
+  <updated>2014-09-24T21:46:07+10:00</updated>
+  <id>http://seandmccarthy.github.com/</id>
+  <author>
+    <name><![CDATA[Sean D McCarthy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[The Cause of a Filename too long error in Passenger]]></title>
+    <link href="http://seandmccarthy.github.com/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/"/>
+    <updated>2012-06-11T21:16:00+10:00</updated>
+    <id>http://seandmccarthy.github.com/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger</id>
+    <content type="html"><![CDATA[<p>Due to a space issue on a server, I moved the location I had deployed a Rails app to another mount point. This is all easy, just move the files, check permissions, and make a few path changes in the Apache configuration file for that virtualhost.</p>
+
+<p>But when I did a reload on Apache, the app didn't come back up.</p>
+
+<p>I headed straight for the appropriate Apache error log to see if there was anything enlightening. What looked interesting was:</p>
+
+<pre><code>[ pid=14748 thr=3086636752 file=ext/apache2/HelperAgent.cpp:353 time=2012-06-04 15:38:41.247 ]: Cannot create Unix socket '/spare/[path redacted for this blog]/shared/system/passenger.1.0.17475/generation-11/spawn-server/socket.14748.139057232': filename is too long.
+</code></pre>
+
+<p>What made no sense to me was that the quoted path could be too long for Linux.</p>
+
+<p>I tried my luck searching the web and the best I got was <a href="http://code.google.com/p/phusion-passenger/issues/detail?id=674">an issue raised on 24th May 2011</a>, which was unresolved<sup><a href="#footnote">1</a></sup>.</p>
+
+<p>Guess I was going to have to do this the hard way.</p>
+
+<p>The upside was that the error message had a stack trace that pointed to a root cause.</p>
+
+<pre><code> in 'void Passenger::SpawnManager::restartServer()' (SpawnManager.h:170)
+ in 'Passenger::SpawnManager::SpawnManager(const std::string&amp;, const boost::shared_ptr&lt;Passenger::ServerInstanceDir::Generation&gt;&amp;, const Passenger::AccountsDatabasePtr&amp;, const std::string&amp;, const Passenger::AnalyticsLoggerPtr&amp;, int, const std::string&amp;)' (SpawnManager.h:535)
+ in 'Passenger::ApplicationPool::Pool::Pool(const std::string&amp;, const boost::shared_ptr&lt;Passenger::ServerInstanceDir::Generation&gt;&amp;, const Passenger::AccountsDatabasePtr&amp;, const std::string&amp;, const Passenger::AnalyticsLoggerPtr&amp;, int, const std::string&amp;)' (Pool.h:1078)
+ in 'Server::Server(Passenger::FileDescriptor, pid_t, const std::string&amp;, bool, const std::string&amp;, const std::string&amp;, const std::string&amp;, const std::string&amp;, unsigned int, unsigned int, unsigned int, unsigned int, const Passenger::VariantMap&amp;)' (HelperAgent.cpp:239)
+ in 'int main(int, char**)' (HelperAgent.cpp:343)
+</code></pre>
+
+<p>I downloaded the Phusion Passenger source and starting looking. Line 170 of SpawnManager.h was a trace breakpoint, but directly below it was:</p>
+
+<pre><code>socketFilename = generation-&gt;getPath() + "/spawn-server/socket." +
+    toString(getpid()) + "." +
+    pointerToIntString(this);
+socketPassword = Base64::encode(random.generateByteString(32));
+serverSocket = createUnixServer(socketFilename.c_str());
+</code></pre>
+
+<p>So I could see the construction of the full path for the socket file, and that was being passed to createUnixServer(). Wielding <a href="http://betterthangrep.com/">ack</a>, I located createUnixServer in passenger/ext/common/Utils/IOUtils.cpp and found this interesting check:</p>
+
+<pre><code>if (filename.size() &gt; sizeof(addr.sun_path) - 1) {
+    string message = "Cannot create Unix socket '";
+    message.append(filename.toString());
+    message.append("': filename is too long.");
+    throw RuntimeException(message);
+}
+</code></pre>
+
+<p>Hmmm, the effective path length of the socket filename is limited by <code>sizeof(addr.sun_path)</code>. The <code>addr</code> variable is of type <code>struct sockaddr_un</code>. With some more web searching <a href="http://www.ccplusplus.com/2011/10/struct-sockaddrun.html">I found the definition for this type</a>:</p>
+
+<pre><code>struct sockaddr_un {
+    unsigned short sun_family;  /* AF_UNIX */
+    char sun_path[108];
+}
+</code></pre>
+
+<p>So the limit of the socket filename in Passenger (full path) is 107 chars (108 - 1). When I moved my webapp I changed the PassengerTempDir path value in the Apache configuration accordingly. The new path (plus the socketFilename auto-generated path) exceeded 107 chars. Augh.</p>
+
+<p>This effectively means that, with the minimum auto-generated socket filename path being <em>around</em> 70 chars, you're left with <em>about</em> 37 chars to play with for the PassengerTempDir path.</p>
+
+<p>I adjusted my paths accordingly, and I could fire up the Rails app successfully.</p>
+
+<p>As to why the sockaddr_un struct has that limit? I haven't been able to find out yet.</p>
+
+<hr />
+
+<p><a id="footnote"></a>
+1. I've now added my findings as a comment.</p>
+]]></content>
+  </entry>
+  
+</feed>

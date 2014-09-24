@@ -1,0 +1,305 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Java and Ruby and XML - The Ten Thousand Dollar Screw</title>
+  <meta name="author" content="Sean D McCarthy">
+
+  
+  <meta name="description" content="I&#8217;ve been working with a colleague on a project to create a set of command line applications to read and emit various genomics file formats. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://seandmccarthy.github.com/blog/2012/09/27/java-and-ruby-and-xml/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="The Ten Thousand Dollar Screw" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">The Ten Thousand Dollar Screw</a></h1>
+  
+    <h2>Know which screw to turn.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://duckduckgo.com/" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:seandmccarthy.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Java and Ruby and XML</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-27T08:07:00+10:00" pubdate data-updated="true">Sep 27<span>th</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I&#8217;ve been working with a colleague on a project to create a set of command line applications to read and emit various genomics file formats. The clients asked that we write the applications in Java, since we&#8217;ll be handing it over to them and it&#8217;s the language they&#8217;re most comfortable with.</p>
+
+<p>One of the file formats is <a href="http://www.psidev.info/mzidentml">mzidentML</a>, an XML format.</p>
+
+<p>It&#8217;s been a while since I&#8217;ve used Java in anger, and using it to read XML probably longer, so it was virtually like learning it anew.</p>
+
+<p>Even with my more Java adept colleague, it took hours to work out how to use the Java XML API for this relatively simple task. So by noting the analogous operations using Ruby and <a href="http://nokogiri.org/">Nokogiri</a>, I&#8217;ll save myself the grief in future.</p>
+
+<p>It&#8217;s also interesting to note where I think things in the Java XML API are more verbose or complicated, but probably some of the myriad of external Java XML processing packages address these.</p>
+
+<h2>Namespaces</h2>
+
+<p>If your XML uses namespaces, like mzidentML does:</p>
+
+<pre><code>&lt;mzIdentML id="" version="1.0.0"
+     xsi:schemaLocation="http://psidev.info/psi/pi/mzIdentML/1.0 http://mascotx/mascot/xmlns/schema/mzIdentML/mzIdentML1.0.0.xsd"
+     xmlns="http://psidev.info/psi/pi/mzIdentML/1.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     creationDate="2012-09-14T11:21:00"&gt;
+</code></pre>
+
+<p>then you need to specify the namespace in your XPath expressions.</p>
+
+<p>Here is the minimum required (as best as I could determine) to set an XML namespace:</p>
+
+<pre><code>xPath.setNamespaceContext(new NamespaceContext() {
+    public String getNamespaceURI(String prefix) {
+        if (prefix == null)
+            throw new NullPointerException("Null prefix");
+        else if ("mz".equals(prefix))
+            return "http://psidev.info/psi/pi/mzIdentML/1.0";
+        return XMLConstants.NULL_NS_URI;
+    }
+    public String getPrefix(String uri) {
+        throw new UnsupportedOperationException();
+    }
+    public Iterator getPrefixes(String uri) {
+        throw new UnsupportedOperationException();
+    }
+});
+</code></pre>
+
+<p>So that it can be used in an XPath expression as so:</p>
+
+<pre><code>NodeList peptideList = (NodeList)xPath.evaluate("//mz:Peptide", rootNode, XPathConstants.NODESET);
+</code></pre>
+
+<p>In Ruby, using Nokogiri, it can basically be:</p>
+
+<pre><code>MZIDENTML_NS = 'http://psidev.info/psi/pi/mzIdentML/1.0';
+# Look for &lt;Peptide&gt; elements in this namespace
+peptide_list = doc.xpath("//mz:Peptide", {'mz' =&gt;  MZIDENTML_NS})
+</code></pre>
+
+<p>Now I can appreciate somewhat that the Java NamespaceContext interface is trying to cover more than this simple use case. However I feel there should be, in the core Java API, a simple alternative specifically for this common use case.</p>
+
+<h2>XPath Expressions</h2>
+
+<p>There was a hint of these in the section above.</p>
+
+<p>To evaluate an XPath expression in Java:</p>
+
+<pre><code>NodeList peptideList = (NodeList)xPath.evaluate("//mz:Peptide", rootNode, XPathConstants.NODESET);
+</code></pre>
+
+<p>The casting and the constant are understandable in a statically typed language, although I did wonder if method overloading could be used to avoid the casting (obviously the last parameter could not be a String constant, perhaps NodeList.class for example).</p>
+
+<p>The Ruby/Nokogiri version of searching for elements with XPath:</p>
+
+<pre><code>peptide_list = doc.xpath("//mz:Peptide", {'mz' =&gt;  MZIDENTML_NS})
+</code></pre>
+
+<h2>Retrieving Attributes</h2>
+
+<p>Given the following XML:</p>
+
+<pre><code>&lt;PeptideEvidence id="PE_11_1_KPYK1_YEAST_0_469_474" start="469" end="474" pre="K" post="E" missedCleavages="0" isDecoy="false" DBSequence_Ref="DBSeq_1_KPYK1_YEAST" /&gt;
+</code></pre>
+
+<p>It took a while to work out a way to get an XML attribute value with the Java XML API. I was convinced this must not be right, but it seems that it is:</p>
+
+<pre><code>String id = node.getAttributes().getNamedItem("id").getNodeValue();
+</code></pre>
+
+<p>Contrast that with Ruby/Nokogiri:</p>
+
+<pre><code>id = node['id']
+</code></pre>
+
+<p>Completely straightforward and intuitive.</p>
+
+<h2>Conclusion</h2>
+
+<p>I&#8217;m sure we could have cast around and evaluated the available XML parsing/handling libraries for Java. Many probably make life a lot simpler.</p>
+
+<p>Ultimately we didn&#8217;t because we thought the task was simple and straightforward, and hence didn&#8217;t need another potentially large library. We thought the provided Java XML API should be sufficient. It was, but it wasn&#8217;t straightforward.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Sean D McCarthy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-09-27T08:07:00+10:00" pubdate data-updated="true">Sep 27<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/ruby/'>ruby</a>, <a class='category' href='/blog/categories/xml/'>xml</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://seandmccarthy.github.com/blog/2012/09/27/java-and-ruby-and-xml/" data-via="seandmccarthy" data-counturl="http://seandmccarthy.github.com/blog/2012/09/27/java-and-ruby-and-xml/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/" title="Previous Post: The Cause of a Filename too long error in Passenger">&laquo; The Cause of a Filename too long error in Passenger</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/09/27/java-and-ruby-and-xml/">Java and Ruby and XML</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/">The Cause of a Filename too long error in Passenger</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/06/10/goals/">Goals</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>Links</h1>
+  <ul id="links">
+    <li><a href="https://github.com/seandmccarthy">@seandmccarthy on GitHub</a></li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Sean D McCarthy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

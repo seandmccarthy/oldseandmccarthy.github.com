@@ -1,0 +1,274 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>The Cause of a Filename too long error in Passenger - The Ten Thousand Dollar Screw</title>
+  <meta name="author" content="Sean D McCarthy">
+
+  
+  <meta name="description" content="Due to a space issue on a server, I moved the location I had deployed a Rails app to another mount point. This is all easy, just move the files, &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://seandmccarthy.github.com/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="The Ten Thousand Dollar Screw" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">The Ten Thousand Dollar Screw</a></h1>
+  
+    <h2>Know which screw to turn.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://duckduckgo.com/" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:seandmccarthy.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">The Cause of a Filename Too Long Error in Passenger</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-11T21:16:00+10:00" pubdate data-updated="true">Jun 11<span>th</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Due to a space issue on a server, I moved the location I had deployed a Rails app to another mount point. This is all easy, just move the files, check permissions, and make a few path changes in the Apache configuration file for that virtualhost.</p>
+
+<p>But when I did a reload on Apache, the app didn&#8217;t come back up.</p>
+
+<p>I headed straight for the appropriate Apache error log to see if there was anything enlightening. What looked interesting was:</p>
+
+<pre><code>[ pid=14748 thr=3086636752 file=ext/apache2/HelperAgent.cpp:353 time=2012-06-04 15:38:41.247 ]: Cannot create Unix socket '/spare/[path redacted for this blog]/shared/system/passenger.1.0.17475/generation-11/spawn-server/socket.14748.139057232': filename is too long.
+</code></pre>
+
+<p>What made no sense to me was that the quoted path could be too long for Linux.</p>
+
+<p>I tried my luck searching the web and the best I got was <a href="http://code.google.com/p/phusion-passenger/issues/detail?id=674">an issue raised on 24th May 2011</a>, which was unresolved<sup><a href="#footnote">1</a></sup>.</p>
+
+<p>Guess I was going to have to do this the hard way.</p>
+
+<p>The upside was that the error message had a stack trace that pointed to a root cause.</p>
+
+<pre><code> in 'void Passenger::SpawnManager::restartServer()' (SpawnManager.h:170)
+ in 'Passenger::SpawnManager::SpawnManager(const std::string&amp;, const boost::shared_ptr&lt;Passenger::ServerInstanceDir::Generation&gt;&amp;, const Passenger::AccountsDatabasePtr&amp;, const std::string&amp;, const Passenger::AnalyticsLoggerPtr&amp;, int, const std::string&amp;)' (SpawnManager.h:535)
+ in 'Passenger::ApplicationPool::Pool::Pool(const std::string&amp;, const boost::shared_ptr&lt;Passenger::ServerInstanceDir::Generation&gt;&amp;, const Passenger::AccountsDatabasePtr&amp;, const std::string&amp;, const Passenger::AnalyticsLoggerPtr&amp;, int, const std::string&amp;)' (Pool.h:1078)
+ in 'Server::Server(Passenger::FileDescriptor, pid_t, const std::string&amp;, bool, const std::string&amp;, const std::string&amp;, const std::string&amp;, const std::string&amp;, unsigned int, unsigned int, unsigned int, unsigned int, const Passenger::VariantMap&amp;)' (HelperAgent.cpp:239)
+ in 'int main(int, char**)' (HelperAgent.cpp:343)
+</code></pre>
+
+<p>I downloaded the Phusion Passenger source and starting looking. Line 170 of SpawnManager.h was a trace breakpoint, but directly below it was:</p>
+
+<pre><code>socketFilename = generation-&gt;getPath() + "/spawn-server/socket." +
+    toString(getpid()) + "." +
+    pointerToIntString(this);
+socketPassword = Base64::encode(random.generateByteString(32));
+serverSocket = createUnixServer(socketFilename.c_str());
+</code></pre>
+
+<p>So I could see the construction of the full path for the socket file, and that was being passed to createUnixServer(). Wielding <a href="http://betterthangrep.com/">ack</a>, I located createUnixServer in passenger/ext/common/Utils/IOUtils.cpp and found this interesting check:</p>
+
+<pre><code>if (filename.size() &gt; sizeof(addr.sun_path) - 1) {
+    string message = "Cannot create Unix socket '";
+    message.append(filename.toString());
+    message.append("': filename is too long.");
+    throw RuntimeException(message);
+}
+</code></pre>
+
+<p>Hmmm, the effective path length of the socket filename is limited by <code>sizeof(addr.sun_path)</code>. The <code>addr</code> variable is of type <code>struct sockaddr_un</code>. With some more web searching <a href="http://www.ccplusplus.com/2011/10/struct-sockaddrun.html">I found the definition for this type</a>:</p>
+
+<pre><code>struct sockaddr_un {
+    unsigned short sun_family;  /* AF_UNIX */
+    char sun_path[108];
+}
+</code></pre>
+
+<p>So the limit of the socket filename in Passenger (full path) is 107 chars (108 - 1). When I moved my webapp I changed the PassengerTempDir path value in the Apache configuration accordingly. The new path (plus the socketFilename auto-generated path) exceeded 107 chars. Augh.</p>
+
+<p>This effectively means that, with the minimum auto-generated socket filename path being <em>around</em> 70 chars, you&#8217;re left with <em>about</em> 37 chars to play with for the PassengerTempDir path.</p>
+
+<p>I adjusted my paths accordingly, and I could fire up the Rails app successfully.</p>
+
+<p>As to why the sockaddr_un struct has that limit? I haven&#8217;t been able to find out yet.</p>
+
+<hr />
+
+<p><a id="footnote"></a>
+1. I&#8217;ve now added my findings as a comment.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Sean D McCarthy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-11T21:16:00+10:00" pubdate data-updated="true">Jun 11<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/passenger/'>passenger</a>, <a class='category' href='/blog/categories/rails/'>rails</a>, <a class='category' href='/blog/categories/troubleshooting/'>troubleshooting</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://seandmccarthy.github.com/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/" data-via="seandmccarthy" data-counturl="http://seandmccarthy.github.com/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/06/10/goals/" title="Previous Post: Goals">&laquo; Goals</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/09/27/java-and-ruby-and-xml/" title="Next Post: Java and Ruby and XML">Java and Ruby and XML &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/09/27/java-and-ruby-and-xml/">Java and Ruby and XML</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/06/11/the-cause-of-a-filename-too-long-error-in-passenger/">The Cause of a Filename too long error in Passenger</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/06/10/goals/">Goals</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>Links</h1>
+  <ul id="links">
+    <li><a href="https://github.com/seandmccarthy">@seandmccarthy on GitHub</a></li>
+  </ul>
+</section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Sean D McCarthy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
